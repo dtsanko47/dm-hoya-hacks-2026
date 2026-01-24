@@ -3,6 +3,40 @@ import { useState, useRef, useEffect } from "react";
 
 
 export default function SpeechHandler() {
+
+  const [stability, setStability] = useState(0.5);
+  const [similarity, setSimilarity] = useState(0.75);
+  const [style, setStyle] = useState(0.0);
+  // We'll assume 'text' comes from a prop or a state later
+  const fullScriptText = "The future is bright";
+
+  const playPreview = async (scriptText: string, stability: number, similarity: number) => {
+  try {
+    // 1. Send the data to your Secret Tunnel (the API route)
+    const response = await fetch('/api/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        text: scriptText, 
+        stability: stability, 
+        similarity: similarity 
+      }),
+    });
+
+    if (!response.ok) throw new Error("Failed to get audio");
+
+    // 2. Turn the response into a "Blob" (a big chunk of audio data)
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+
+    // 3. Play the audio in the browser
+    const audio = new Audio(url);
+    audio.play();
+  } catch (error) {
+    console.error("ElevenLabs Error:", error);
+    alert("Check your API key or permissions!");
+  }
+};
     
   // 1. The Script (The goal)
   const script = ["the", "future", "is", "bright"];
@@ -50,9 +84,11 @@ export default function SpeechHandler() {
         </span>
       </h3>
       
-      <button onClick={startListening} className="bg-green-600 px-6 py-2 rounded-full">
-        Start Reading
-      </button>
+      <button 
+  onClick={() => playPreview(fullScriptText, stability, similarity)} 
+  className="bg-purple-600 px-6 py-2 rounded-full ml-4"
+>
+</button>
 
       <div className="mt-4 flex gap-2 justify-center">
         {script.map((word, i) => (
