@@ -1,28 +1,33 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+
 export default function Home() {
-  const [script, setScript] = useState("");
   const [showHelp, setShowHelp] = useState(false);
+  const [script, setScript] = useState("");
+  const router = useRouter();
+  const start = () => {
+    localStorage.setItem("teleprompterScript", script);
+    router.push("/reading");
+  };
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-black text-white">
-      <h1 className="text-6xl font-bold mb-18">Smart Teleprompter</h1>
+    <main className = "flex min-h-screen flex-col items-center justify-center p-24 bg-black text-white">
+      <h1 className = "text-6xl font-bold mb-18">Smart Teleprompter</h1>
       
       <textarea 
-  value={script}
-  onChange={(e) => setScript(e.target.value)}
-  className="w-full max-w-2xl h-64 p-4 text-white rounded-lg shadow-lg border-2 border-gray-300 focus:border-yellow-400 outline-none"
-  placeholder="Paste your script here..."
-/>
-
+        value = {script}
+        onChange = {(e) => setScript(e.target.value)}
+        className = "w-full max-w-2xl h-64 p-4 text-white rounded-lg shadow-lg border-2 border-gray-300 focus:border-yellow-400 outline-none"
+        placeholder = "Paste your script here..."
+      />
+    
       <button
-  onClick={() => {
-    const encoded = encodeURIComponent(script);
-    window.location.href = `/reading?script=${encoded}`;
-  }}
-  className="mt-6 px-8 py-3 bg-yellow-400 text-black font-bold rounded-full hover:bg-yellow-300 transition-colors"
-  >
-  Start Reading
-</button>
+        onClick={start}
+        className="mt-6 px-8 py-3 bg-yellow-400 text-black font-bold rounded-full hover:bg-yellow-300 transition-colors"
+      >
+        Start Reading
+      </button>
 
       <button
         onClick={() => setShowHelp(true)}
@@ -52,7 +57,6 @@ export default function Home() {
                 ×
               </button>
             </div>
-
             <ol className="mt-4 space-y-2 text-white/80 list-decimal list-inside">
               <li>Paste your script into the box.</li>
               <li>Click <span className="text-yellow-400 font-semibold">Start Reading</span>.</li>
