@@ -15,7 +15,6 @@ export default function Home() {
     <main className = "flex min-h-screen flex-col items-center justify-center p-24 bg-black text-white">
       <h1 className = "text-6xl font-bold mb-18">Smart Teleprompter</h1>
       
-      {/* Script Input Area */}
       <textarea 
         value = {script}
         onChange = {(e) => setScript(e.target.value)}
