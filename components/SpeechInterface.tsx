@@ -1,6 +1,8 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 
+//New
+
 export default function SpeechHandler() {
     
   // 1. The Script (The goal)
