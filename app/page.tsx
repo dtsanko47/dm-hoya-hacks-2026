@@ -1,3 +1,5 @@
+import SpeechInterface from "@/components/SpeechInterface";
+
 export default function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-black text-white">
@@ -12,6 +14,10 @@ export default function Home() {
       <button className="mt-6 px-8 py-3 bg-yellow-400 text-black font-bold rounded-full hover:bg-yellow-300 transition-colors">
         Start Reading
       </button>
+
+      <div className="mt-10">
+          <SpeechInterface />
+        </div>
     </main>
   )
 }
