@@ -1,4 +1,4 @@
-import Link from "next/link";
+
 export default function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-black text-white">
@@ -15,7 +15,6 @@ export default function Home() {
         className="mt-6 px-8 py-3 bg-yellow-400 text-black font-bold rounded-full hover:bg-yellow-300 transition-colors"
         >
         Start Reading
-      </Link>
     </main>
   )
 }
