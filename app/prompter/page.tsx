@@ -1,22 +1,24 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import SpeechHandler from "@/components/SpeechInterface";
 
 export default function PrompterPage() {
   const router = useRouter();
   
-  // 1. Start with an empty string
-  const [script, setScript] = useState<string>("");
-
-  // 2. Only look for the script once the page is "mounted" in the browser
-  useEffect(() => {
-    const saved = window.localStorage.getItem("teleprompterScript");
-    if (saved) {
-      setScript(saved);
+  // 1. Initialize state from localStorage
+  const [script] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      return window.localStorage.getItem("teleprompterScript") || "";
     }
-  }, []);
+    return "";
+  });
+
+  const handleRestart = () => {
+    localStorage.removeItem("teleprompterScript");
+    router.push("/");
+  };
 
   return (
     <main className="relative min-h-screen bg-black text-white p-10">
@@ -26,6 +28,14 @@ export default function PrompterPage() {
                    text-white/80 hover:bg-white/10 hover:text-white transition"
       >
         ← Back
+      </button>
+
+      <button
+        onClick={handleRestart}
+        className="fixed top-6 right-6 z-50 rounded-full border border-white/20 bg-red-600/20 px-4 py-2
+                   text-red-300 hover:bg-red-600/30 hover:text-red-100 transition"
+      >
+        🔄 Restart
       </button>
 
       <h2 className="fixed top-6 left-1/2 -translate-x-1/2 text-xl text-white/70">
