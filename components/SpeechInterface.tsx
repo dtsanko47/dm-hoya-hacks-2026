@@ -189,6 +189,23 @@ export default function SpeechHandler({ scriptText }: { scriptText: string }) {
     setWordIndex(nextLineStart);
   };
 
+  const handleRestart = () => {
+    // Reset all state to initial values
+    setWordIndex(0);
+    wordIndexRef.current = 0;
+    setIsListening(false);
+    setCurrentWPM(0);
+    wordTimestampsRef.current = [];
+    setAudioBlob(null);
+    setAiSummary(null);
+    setIsAnalyzing(false);
+    chunksRef.current = [];
+    recognitionRef.current?.stop();
+    if (mediaRecorderRef.current?.state === "recording") {
+      mediaRecorderRef.current.stop();
+    }
+  };
+
   // AUTO-STOP when last word is reached
   useEffect(() => {
     if (wordIndex >= originalWords.length && isListening) {
@@ -202,6 +219,14 @@ export default function SpeechHandler({ scriptText }: { scriptText: string }) {
 
   return (
     <div className="w-full max-w-4xl mx-auto text-center pb-[60vh] relative">
+      {/* RESTART BUTTON */}
+      <button
+        onClick={handleRestart}
+        className="fixed bottom-6 right-6 z-50 rounded-full border border-white/20 bg-yellow-600/20 px-4 py-2
+                   text-yellow-300 hover:bg-yellow-600/30 hover:text-yellow-100 transition"
+      >
+        🔄 Restart
+      </button>
       
       {/* PACE DISPLAY */}
       <div className={`fixed top-8 right-8 px-8 py-6 rounded-2xl shadow-2xl transition-all duration-500 z-50 ${
