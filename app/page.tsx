@@ -11,6 +11,7 @@ export default function Home() {
   const [voiceId, setVoiceId] = useState("21m00Tcm4TlvDq8ikWAM"); // Default to Rachel
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const [showHelp, setShowHelp] = useState(false);
 
   const playPreview = async () => {
     setLoading(true);
@@ -22,14 +23,19 @@ export default function Home() {
           'Accept': 'audio/mpeg'
         },
         body: JSON.stringify({ text: script, stability, similarity, voiceId }),
-        
       });
-      const blob = await response.blob();
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.statusText}`);
+      }
+
+      const blob = new Blob([await response.arrayBuffer()], { type: 'audio/mpeg' });
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
       audio.play();
     } catch (e) {
-      console.error(e);
+      console.error("Audio playback error:", e);
+      alert("Failed to play audio. Check console for details.");
     } finally {
       setLoading(false);
     }
@@ -65,7 +71,7 @@ export default function Home() {
             <label className="text-xs text-white/50 uppercase font-bold">Speed: {speed}</label>
             <input type="range" min="0" max="1" step="0.1" value={speed} onChange={(e) => setSpeed(parseFloat(e.target.value))} className="accent-yellow-400" />
           </div>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2 -mt-4">
             <label className="text-xs text-white/50 uppercase font-bold">Style Exaggeration: {styleExaggeration}</label>
             <input type="range" min="0" max="1" step="0.1" value={styleExaggeration} onChange={(e) => setStyleExaggeration(parseFloat(e.target.value))} className="accent-yellow-400" />
           </div>
@@ -102,6 +108,58 @@ export default function Home() {
       <button onClick={start} className="bg-yellow-400 text-black px-12 py-4 rounded-full font-bold hover:bg-yellow-300 transition text-xl">
         Start Teleprompter →
       </button>
+
+      <button
+        onClick={() => setShowHelp(true)}
+        className="absolute top-6 right-6 h-10 w-10 rounded-full border border-white/20 bg-white/5
+                   text-white/80 hover:bg-white/10 hover:text-white transition"
+        aria-label="Instructions"
+        title="Instructions"
+      >
+        ?
+      </button>
+
+      {/* ✅ This is what actually shows the instructions */}
+      {showHelp && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6"
+          onClick={() => setShowHelp(false)}
+        >
+          <div
+            className="w-full max-w-lg rounded-2xl border border-white/10 bg-zinc-950 p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between">
+              <h2 className="text-xl font-bold">Instructions</h2>
+              <button
+                onClick={() => setShowHelp(false)}
+                className="text-white/60 hover:text-white text-2xl leading-none"
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+
+            <ol className="mt-4 space-y-2 text-white/80 list-decimal list-inside">
+              <li>Paste your script into the box.</li>
+              <li>Click <span className="text-yellow-400 font-semibold">Start Reading</span>.</li>
+              <li>Watch the 3-second countdown.</li>
+              <li>Start reading on the next screen.</li>
+            </ol>
+
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setShowHelp(false)}
+                className="rounded-full bg-yellow-400 px-5 py-2 font-bold text-black hover:bg-yellow-300"
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+  
     </main>
   );
 }
