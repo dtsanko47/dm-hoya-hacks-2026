@@ -160,18 +160,21 @@ export default function Home() {
 
       <button
         onClick={() => setShowHelp(true)}
-        className="absolute top-6 right-6 h-10 w-10 rounded-full border border-white/20 bg-white/5
-                   text-white/80 hover:bg-white/10 hover:text-white transition"
+        className={`absolute top-6 right-6 h-10 w-10 rounded-full border transition flex items-center justify-center
+          ${isDarkMode 
+            ? 'border-white/20 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white' 
+            : 'border-black/10 bg-black/5 text-black/60 hover:bg-black/10 hover:text-black'
+          }`}
         aria-label="Instructions"
         title="Instructions"
-      >
-        ?
-      </button>
+    >
+      ?
+    </button>
 
       {/* This is what actually shows the instructions */}
       {showHelp && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/0 p-6"
           onClick={() => setShowHelp(false)}
         >
           <div
@@ -179,7 +182,7 @@ export default function Home() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between">
-              <h2 className="text-xl font-bold">Instructions</h2>
+              <h2 className="text-xl font-bold text-white">Instructions</h2>
               <button
                 onClick={() => setShowHelp(false)}
                 className="text-white/60 hover:text-white text-2xl leading-none"

@@ -1,7 +1,14 @@
 "use client";
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 
-export default function SpeechHandler({ scriptText }: { scriptText: string }) {
+// Added isDarkMode to the props definition
+export default function SpeechHandler({ 
+  scriptText, 
+  isDarkMode 
+}: { 
+  scriptText: string; 
+  isDarkMode: boolean; 
+}) {
   const originalWords = useMemo(() => 
     scriptText.split(/\s+/).filter(word => word.length > 0), 
     [scriptText]
@@ -35,20 +42,16 @@ export default function SpeechHandler({ scriptText }: { scriptText: string }) {
   const chunksRef = useRef<Blob[]>([]);
 
   const toggleListening = async () => {
-  if (isListening) {
-    setIsListening(false);
-    recognitionRef.current?.stop();
-    // Stop the audio recorder if it's running
-    if (mediaRecorderRef.current?.state === "recording") {
-      mediaRecorderRef.current.stop();
+    if (isListening) {
+      setIsListening(false);
+      recognitionRef.current?.stop();
+      if (mediaRecorderRef.current?.state === "recording") {
+        mediaRecorderRef.current.stop();
+      }
+    } else {
+      setCountdown(3);
     }
-  } else {
-    // Start the countdown
-    setCountdown(3);
-  }
-};
-
-
+  };
 
   // AUTO-SCROLL
   useEffect(() => {
@@ -62,12 +65,10 @@ export default function SpeechHandler({ scriptText }: { scriptText: string }) {
     if (countdown === null) return;
     
     if (countdown === 0) {
-      // Start listening after "Go!"
       const startId = setTimeout(async () => {
         setCountdown(null);
         setIsListening(true);
         
-        // Start listening with speech recognition
         const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
         if (!SpeechRecognition) return alert("Please use Chrome or Edge.");
 
@@ -110,7 +111,6 @@ export default function SpeechHandler({ scriptText }: { scriptText: string }) {
         recognitionRef.current = recognition;
         recognition.start();
 
-        // Start Audio Recording ONLY if enabled
         if (isRecordingEnabled) {
           const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
           const recorder = new MediaRecorder(stream);
@@ -149,60 +149,6 @@ export default function SpeechHandler({ scriptText }: { scriptText: string }) {
     return () => clearInterval(interval);
   }, [isListening, calculateLiveWPM]);
 
-  // SPEECH ENGINE WITH 5-WORD LOOK-AHEAD
-  const startListening = () => {
-    const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
-    if (!SpeechRecognition) return alert("Please use Chrome or Edge.");
-
-    const recognition = new SpeechRecognition();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-
-    recognition.onresult = (event: any) => {
-      const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
-      const transcriptWords = transcript.split(/\s+/);
-      const lastSpokenWord = transcriptWords[transcriptWords.length - 1];
-
-      // LOOK-AHEAD CONFIG
-      const lookAheadAmount = 3; 
-      const currentIndex = wordIndexRef.current;
-
-      // Check the next 5 words in the script
-      for (let i = 0; i < lookAheadAmount; i++) {
-        const checkIndex = currentIndex + i;
-        if (checkIndex >= originalWords.length) break;
-
-        const targetWord = originalWords[checkIndex]
-          .replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "")
-          .toLowerCase();
-
-        // If the transcript contains the word, or the last spoken word is a partial match
-        if (transcript.includes(targetWord) || (lastSpokenWord.length >= 3 && targetWord.startsWith(lastSpokenWord))) {
-          // Record timing for WPM
-          wordTimestampsRef.current.push(Date.now());
-          
-          // Jump to this word + 1
-          const newIndex = checkIndex + 1;
-          wordIndexRef.current = newIndex;
-          setWordIndex(newIndex);
-          break; // Stop searching once we find a match in the window
-        }
-      }
-    };
-
-    recognition.onend = () => {
-      if (isListening && wordIndexRef.current < originalWords.length) {
-        try { recognition.start(); } catch (e) {}
-      }
-    };
-
-    recognitionRef.current = recognition;
-    recognition.start();
-  };
-
-
-
-
   const generateAISummary = async () => {
     if (!audioBlob) return;
     setIsAnalyzing(true);
@@ -220,7 +166,6 @@ export default function SpeechHandler({ scriptText }: { scriptText: string }) {
     }
   };
 
-
   const skipWord = () => {
     wordIndexRef.current++;
     setWordIndex(wordIndexRef.current);
@@ -233,7 +178,6 @@ export default function SpeechHandler({ scriptText }: { scriptText: string }) {
   };
 
   const handleRestart = () => {
-    // Reset all state to initial values
     setWordIndex(0);
     wordIndexRef.current = 0;
     setIsListening(false);
@@ -249,7 +193,6 @@ export default function SpeechHandler({ scriptText }: { scriptText: string }) {
     }
   };
 
-  // AUTO-STOP when last word is reached
   useEffect(() => {
     if (wordIndex >= originalWords.length && isListening) {
       setIsListening(false);
@@ -281,22 +224,30 @@ export default function SpeechHandler({ scriptText }: { scriptText: string }) {
       {/* RESTART BUTTON */}
       <button
         onClick={handleRestart}
-        className="fixed bottom-6 right-6 z-50 rounded-full border border-white/20 bg-yellow-600/20 px-4 py-2
-                   text-yellow-300 hover:bg-yellow-600/30 hover:text-yellow-100 transition"
+        className={` ${
+          isDarkMode 
+            ? 'fixed bottom-6 right-6 z-50 rounded-full border px-4 py-2 transition border-white/20 bg-yellow-600/20 text-yellow-300 hover:bg-yellow-600/30' 
+            : 'fixed bottom-6 right-6 z-50 rounded-full border px-4 py-2 transition border-black/10 bg-yellow-500/20 text-yellow-700 hover:bg-yellow-500/30'
+        }`}
       >
         🔄 Restart
       </button>
       
       {/* PACE DISPLAY */}
-      <div className={`fixed top-8 right-8 px-8 py-6 rounded-2xl shadow-2xl transition-all duration-500 z-50 ${
+      <div className={`fixed top-30 right-8 px-8 py-6 rounded-2xl shadow-2xl transition-all duration-500 z-50 ${
         isListening ? 'translate-x-0 opacity-100' : 'translate-x-20 opacity-0'
-      } ${currentWPM > 225 ? 'bg-red-600 animate-pulse' : 'bg-zinc-900 border border-white/10'}`}>
-        <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Pace</div>
-        <div className="text-6xl font-black text-white leading-none my-1">{currentWPM}</div>
-        <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">WPM</div>
+      } ${currentWPM > 225 ? 'bg-red-600 animate-pulse' : 
+        isDarkMode ? 'bg-zinc-900 border border-white/10' : 'bg-white border border-black/10'
+      }`}>
+        <div className={`text-[10px] font-bold uppercase tracking-widest ${isDarkMode ? 'text-zinc-400' : 'text-zinc-500'}`}>Pace</div>
+        <div className={`text-6xl font-black leading-none my-1 ${isDarkMode ? 'text-white' : 'text-black'}`}>{currentWPM}</div>
+        <div className={`text-[10px] font-bold uppercase tracking-widest ${isDarkMode ? 'text-zinc-400' : 'text-zinc-500'}`}>WPM</div>
       </div>
+
       {/* STICKY CONTROLS */}
-      <div className="sticky top-0 z-40 bg-black/90 backdrop-blur-xl py-10 mb-20 border-b border-white/10">
+      <div className={`sticky top-0 z-40 backdrop-blur-xl py-10 mb-20 border-b transition-colors duration-500 ${
+        isDarkMode ? 'bg-black/90 border-white/10' : 'bg-white/90 border-black/10'
+      }`}>
         <div className="flex flex-col items-center gap-4">
           <div className="flex items-center justify-center gap-6">
             {!isListening && wordIndex < originalWords.length ? (
@@ -322,7 +273,6 @@ export default function SpeechHandler({ scriptText }: { scriptText: string }) {
             )}
           </div>
           
-          {/* ENABLE RECORDING TOGGLE */}
           {!isListening && wordIndex === 0 && (
             <div className="flex items-center gap-2">
               <input 
@@ -332,7 +282,14 @@ export default function SpeechHandler({ scriptText }: { scriptText: string }) {
                 onChange={() => setIsRecordingEnabled(!isRecordingEnabled)}
                 className="w-4 h-4 cursor-pointer"
               />
-              <label htmlFor="aiRecord" className="text-zinc-400 text-sm font-bold cursor-pointer">Enable Recording for AI Summary</label>
+              <label 
+                htmlFor="aiRecord" 
+                className={`text-sm font-bold cursor-pointer transition-colors ${
+                  isDarkMode ? 'text-zinc-400' : 'text-zinc-600'
+                }`}
+              >
+                Enable Recording for AI Summary
+              </label>
             </div>
           )}
         </div>
@@ -354,9 +311,17 @@ export default function SpeechHandler({ scriptText }: { scriptText: string }) {
                       key={wordIdx} 
                       ref={isCurrent ? activeWordRef : null}
                       className={`transition-all duration-500 ${
-                        isCurrent ? "text-yellow-400 underline underline-offset-[16px] decoration-4 scale-110" 
-                        : isPast ? "text-zinc-800 opacity-40" : "text-white"
+                        isCurrent 
+                          ? "text-yellow-400 underline underline-offset-[16px] decoration-4 scale-110" 
+                          : isPast 
+                            ? (isDarkMode ? "text-zinc-800 opacity-40" : "text-zinc-300 opacity-50") 
+                            : (isDarkMode ? "text-white" : "text-black")
                       }`}
+                      style={isCurrent ? { 
+                        textShadow: isDarkMode 
+                          ? '0 0 10px rgba(0,0,0,1), -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000' 
+                          : '-1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000, 1.5px 1.5px 0 #000' 
+                      } : {}}
                     >
                       {word}
                     </span>
@@ -366,12 +331,13 @@ export default function SpeechHandler({ scriptText }: { scriptText: string }) {
             );
           })
         ) : (
-          <div className="mt-20 p-10 bg-zinc-900/50 rounded-3xl border border-white/10 animate-in fade-in slide-in-from-bottom-10">
+          <div className={`mt-20 p-10 rounded-3xl border animate-in fade-in slide-in-from-bottom-10 transition-colors ${
+            isDarkMode ? 'bg-zinc-900/50 border-white/10' : 'bg-zinc-100 border-black/10'
+          }`}>
             <h2 className="text-green-400 text-4xl font-black mb-6">🎉 Session Complete!</h2>
-            
             {isRecordingEnabled && audioBlob ? (
               <div className="space-y-6">
-                <p className="text-zinc-400">Audio captured. Ready for coaching feedback?</p>
+                <p className={isDarkMode ? "text-zinc-400" : "text-zinc-600"}>Audio captured. Ready for coaching feedback?</p>
                 {!aiSummary ? (
                   <button 
                     onClick={generateAISummary}
@@ -381,9 +347,11 @@ export default function SpeechHandler({ scriptText }: { scriptText: string }) {
                     {isAnalyzing ? "Gemini is listening..." : "✨ Generate AI Review"}
                   </button>
                 ) : (
-                  <div className="text-left bg-black/40 p-6 rounded-2xl border border-blue-500/30 prose prose-invert max-w-none">
+                  <div className={`text-left p-6 rounded-2xl border border-blue-500/30 prose prose-invert max-w-none ${
+                    isDarkMode ? 'bg-black/40' : 'bg-white'
+                  }`}>
                     <h3 className="text-blue-400 font-bold mb-2">Coach Gemini's Notes:</h3>
-                    <div className="whitespace-pre-wrap text-zinc-200 text-base leading-relaxed">{aiSummary}</div>
+                    <div className={`whitespace-pre-wrap text-base leading-relaxed ${isDarkMode ? 'text-zinc-200' : 'text-zinc-800'}`}>{aiSummary}</div>
                   </div>
                 )}
               </div>

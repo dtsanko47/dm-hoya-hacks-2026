@@ -76,7 +76,7 @@ export default function PrompterPage() {
 
       <div className="mt-20">
         {script ? (
-          <SpeechHandler scriptText={script} />
+          <SpeechHandler scriptText={script} isDarkMode={isDarkMode} />
         ) : (
           <div className="text-center text-2xl mt-40">
             No script found. Go back and paste your script.
