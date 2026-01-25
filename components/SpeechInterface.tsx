@@ -189,6 +189,17 @@ export default function SpeechHandler({ scriptText }: { scriptText: string }) {
     setWordIndex(nextLineStart);
   };
 
+  // AUTO-STOP when last word is reached
+  useEffect(() => {
+    if (wordIndex >= originalWords.length && isListening) {
+      setIsListening(false);
+      recognitionRef.current?.stop();
+      if (mediaRecorderRef.current?.state === "recording") {
+        mediaRecorderRef.current.stop();
+      }
+    }
+  }, [wordIndex, originalWords.length, isListening]);
+
   return (
     <div className="w-full max-w-4xl mx-auto text-center pb-[60vh] relative">
       
@@ -204,10 +215,20 @@ export default function SpeechHandler({ scriptText }: { scriptText: string }) {
       <div className="sticky top-0 z-40 bg-black/90 backdrop-blur-xl py-10 mb-20 border-b border-white/10">
         <div className="flex flex-col items-center gap-4">
           <div className="flex items-center justify-center gap-6">
-            {!isListening ? (
+            {!isListening && wordIndex < originalWords.length ? (
               <button onClick={toggleListening} className="px-12 py-5 rounded-full text-2xl font-black shadow-2xl bg-green-600 hover:bg-green-500 hover:scale-105 transition-all text-white">
                 🎤 Start Reading
               </button>
+            ) : wordIndex >= originalWords.length ? (
+              isRecordingEnabled && audioBlob && !aiSummary ? (
+                <button 
+                  onClick={generateAISummary}
+                  disabled={isAnalyzing}
+                  className="px-8 py-4 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-2xl font-bold shadow-xl transition-all"
+                >
+                  {isAnalyzing ? "Gemini is listening..." : "✨ Generate AI Review"}
+                </button>
+              ) : null
             ) : (
               <div className="flex items-center gap-4 animate-in fade-in zoom-in duration-300">
                 <button onClick={skipWord} className="px-6 py-3 rounded-xl bg-zinc-800 text-white font-bold hover:bg-zinc-700 border border-white/10 transition">Skip Word ⏭️</button>
@@ -218,7 +239,7 @@ export default function SpeechHandler({ scriptText }: { scriptText: string }) {
           </div>
           
           {/* ENABLE RECORDING TOGGLE */}
-          {!isListening && (
+          {!isListening && wordIndex === 0 && (
             <div className="flex items-center gap-2">
               <input 
                 type="checkbox" 
@@ -278,17 +299,13 @@ export default function SpeechHandler({ scriptText }: { scriptText: string }) {
                 ) : (
                   <div className="text-left bg-black/40 p-6 rounded-2xl border border-blue-500/30 prose prose-invert max-w-none">
                     <h3 className="text-blue-400 font-bold mb-2">Coach Gemini's Notes:</h3>
-                    <div className="whitespace-pre-wrap text-zinc-200">{aiSummary}</div>
+                    <div className="whitespace-pre-wrap text-zinc-200 text-base leading-relaxed">{aiSummary}</div>
                   </div>
                 )}
               </div>
             ) : (
               <p className="text-zinc-500 italic">Recording was disabled.</p>
             )}
-            
-            <button onClick={() => window.location.reload()} className="mt-8 text-zinc-400 hover:text-white transition underline block mx-auto">
-              Try Again
-            </button>
           </div>
         )}
       </div>
