@@ -25,6 +25,47 @@ export default function SpeechHandler({ scriptText }: { scriptText: string }) {
   const activeWordRef = useRef<HTMLSpanElement>(null);
   const wordTimestampsRef = useRef<number[]>([]);
 
+  //------------------- NEW AI FEATURES -------------------//
+  const [isRecordingEnabled, setIsRecordingEnabled] = useState(false);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+
+  const toggleListening = async () => {
+  if (isListening) {
+    setIsListening(false);
+    recognitionRef.current?.stop();
+    // Stop the audio recorder if it's running
+    if (mediaRecorderRef.current?.state === "recording") {
+      mediaRecorderRef.current.stop();
+    }
+  } else {
+    setIsListening(true);
+    startListening();
+
+    // Start Audio Recording ONLY if enabled
+    if (isRecordingEnabled) {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      chunksRef.current = [];
+      
+      recorder.ondataavailable = (e) => chunksRef.current.push(e.data);
+      recorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: "audio/mp3" });
+        setAudioBlob(blob);
+      };
+      
+      mediaRecorderRef.current = recorder;
+      recorder.start();
+    }
+  }
+};
+
+
+
   // AUTO-SCROLL
   useEffect(() => {
     if (activeWordRef.current) {
@@ -99,6 +140,13 @@ export default function SpeechHandler({ scriptText }: { scriptText: string }) {
     recognition.start();
   };
 
+
+
+
+
+
+
+  /*
   const toggleListening = () => {
     if (isListening) {
       setIsListening(false);
@@ -109,6 +157,26 @@ export default function SpeechHandler({ scriptText }: { scriptText: string }) {
       startListening();
     }
   };
+  */
+
+
+  const generateAISummary = async () => {
+    if (!audioBlob) return;
+    setIsAnalyzing(true);
+    const formData = new FormData();
+    formData.append("audio", audioBlob);
+    formData.append("script", scriptText);
+    try {
+      const response = await fetch("/api/review", { method: "POST", body: formData });
+      const data = await response.json();
+      setAiSummary(data.feedback);
+    } catch (error) {
+      setAiSummary("Failed to generate AI analysis.");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
 
   const skipWord = () => {
     wordIndexRef.current++;
@@ -132,19 +200,34 @@ export default function SpeechHandler({ scriptText }: { scriptText: string }) {
         <div className="text-6xl font-black text-white leading-none my-1">{currentWPM}</div>
         <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">WPM</div>
       </div>
-
       {/* STICKY CONTROLS */}
       <div className="sticky top-0 z-40 bg-black/90 backdrop-blur-xl py-10 mb-20 border-b border-white/10">
-        <div className="flex items-center justify-center gap-6">
-          {!isListening ? (
-            <button onClick={toggleListening} className="px-12 py-5 rounded-full text-2xl font-black shadow-2xl bg-green-600 hover:bg-green-500 hover:scale-105 transition-all text-white">
-              🎤 Start Reading
-            </button>
-          ) : (
-            <div className="flex items-center gap-4 animate-in fade-in zoom-in duration-300">
-              <button onClick={skipWord} className="px-6 py-3 rounded-xl bg-zinc-800 text-white font-bold hover:bg-zinc-700 border border-white/10 transition">Skip Word ⏭️</button>
-              <button onClick={toggleListening} className="px-8 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-500 transition shadow-lg">🛑 Stop</button>
-              <button onClick={skipLine} className="px-6 py-3 rounded-xl bg-zinc-800 text-white font-bold hover:bg-zinc-700 border border-white/10 transition">Skip Line ⏩</button>
+        <div className="flex flex-col items-center gap-4">
+          <div className="flex items-center justify-center gap-6">
+            {!isListening ? (
+              <button onClick={toggleListening} className="px-12 py-5 rounded-full text-2xl font-black shadow-2xl bg-green-600 hover:bg-green-500 hover:scale-105 transition-all text-white">
+                🎤 Start Reading
+              </button>
+            ) : (
+              <div className="flex items-center gap-4 animate-in fade-in zoom-in duration-300">
+                <button onClick={skipWord} className="px-6 py-3 rounded-xl bg-zinc-800 text-white font-bold hover:bg-zinc-700 border border-white/10 transition">Skip Word ⏭️</button>
+                <button onClick={toggleListening} className="px-8 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-500 transition shadow-lg">🛑 Stop</button>
+                <button onClick={skipLine} className="px-6 py-3 rounded-xl bg-zinc-800 text-white font-bold hover:bg-zinc-700 border border-white/10 transition">Skip Line ⏩</button>
+              </div>
+            )}
+          </div>
+          
+          {/* ENABLE RECORDING TOGGLE */}
+          {!isListening && (
+            <div className="flex items-center gap-2">
+              <input 
+                type="checkbox" 
+                id="aiRecord" 
+                checked={isRecordingEnabled} 
+                onChange={() => setIsRecordingEnabled(!isRecordingEnabled)}
+                className="w-4 h-4 cursor-pointer"
+              />
+              <label htmlFor="aiRecord" className="text-zinc-400 text-sm font-bold cursor-pointer">Enable Recording for AI Summary</label>
             </div>
           )}
         </div>
@@ -178,7 +261,35 @@ export default function SpeechHandler({ scriptText }: { scriptText: string }) {
             );
           })
         ) : (
-          <div className="text-green-400 text-4xl animate-bounce py-20">🎉 Session Complete!</div>
+          <div className="mt-20 p-10 bg-zinc-900/50 rounded-3xl border border-white/10 animate-in fade-in slide-in-from-bottom-10">
+            <h2 className="text-green-400 text-4xl font-black mb-6">🎉 Session Complete!</h2>
+            
+            {isRecordingEnabled && audioBlob ? (
+              <div className="space-y-6">
+                <p className="text-zinc-400">Audio captured. Ready for coaching feedback?</p>
+                {!aiSummary ? (
+                  <button 
+                    onClick={generateAISummary}
+                    disabled={isAnalyzing}
+                    className="px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold shadow-xl transition-all"
+                  >
+                    {isAnalyzing ? "Gemini is listening..." : "✨ Generate AI Review"}
+                  </button>
+                ) : (
+                  <div className="text-left bg-black/40 p-6 rounded-2xl border border-blue-500/30 prose prose-invert max-w-none">
+                    <h3 className="text-blue-400 font-bold mb-2">Coach Gemini's Notes:</h3>
+                    <div className="whitespace-pre-wrap text-zinc-200">{aiSummary}</div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-zinc-500 italic">Recording was disabled.</p>
+            )}
+            
+            <button onClick={() => window.location.reload()} className="mt-8 text-zinc-400 hover:text-white transition underline block mx-auto">
+              Try Again
+            </button>
+          </div>
         )}
       </div>
     </div>
