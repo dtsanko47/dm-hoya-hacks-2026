@@ -6,6 +6,7 @@
 
 ## ✨ Features
 
+- **AI Reference Audio (ElevenLabs):** Paste your script and generate a "Perfect Delivery" example. Hear exactly how your speech *should* sound before you even start recording.
 - **Multimodal Audio Analysis:** Processes raw voice recordings directly
 - **Script Comparison:** Detects missed words, fillers, and deviations from your provided text.
 - **Pacing & Tone Insights:** Analyzes your delivery speed and emotional resonance.
