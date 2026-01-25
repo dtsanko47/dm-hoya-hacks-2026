@@ -48,7 +48,7 @@ export default function Home() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-12 bg-black text-white">
-      <h1 className="text-5xl font-bold mb-8 text-yellow-400">Smart Teleprompter</h1>
+      <h1 className="text-5xl font-bold mb-8 text-yellow-400">ProPodium AI</h1>
       
       <textarea 
         value={script}
@@ -119,7 +119,7 @@ export default function Home() {
         ?
       </button>
 
-      {/* ✅ This is what actually shows the instructions */}
+      {/* This is what actually shows the instructions */}
       {showHelp && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6"
