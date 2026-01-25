@@ -20,6 +20,7 @@ export default function SpeechHandler({ scriptText }: { scriptText: string }) {
   const wordIndexRef = useRef(0);
   const [isListening, setIsListening] = useState(false);
   const [currentWPM, setCurrentWPM] = useState(0);
+  const [countdown, setCountdown] = useState<number | null>(null);
   
   const recognitionRef = useRef<any>(null);
   const activeWordRef = useRef<HTMLSpanElement>(null);
@@ -42,24 +43,8 @@ export default function SpeechHandler({ scriptText }: { scriptText: string }) {
       mediaRecorderRef.current.stop();
     }
   } else {
-    setIsListening(true);
-    startListening();
-
-    // Start Audio Recording ONLY if enabled
-    if (isRecordingEnabled) {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-      chunksRef.current = [];
-      
-      recorder.ondataavailable = (e) => chunksRef.current.push(e.data);
-      recorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: "audio/mp3" });
-        setAudioBlob(blob);
-      };
-      
-      mediaRecorderRef.current = recorder;
-      recorder.start();
-    }
+    // Start the countdown
+    setCountdown(3);
   }
 };
 
@@ -71,6 +56,82 @@ export default function SpeechHandler({ scriptText }: { scriptText: string }) {
       activeWordRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   }, [wordIndex]);
+
+  // COUNTDOWN TIMER
+  useEffect(() => {
+    if (countdown === null) return;
+    
+    if (countdown === 0) {
+      // Start listening after "Go!"
+      const startId = setTimeout(async () => {
+        setCountdown(null);
+        setIsListening(true);
+        
+        // Start listening with speech recognition
+        const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
+        if (!SpeechRecognition) return alert("Please use Chrome or Edge.");
+
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+
+        recognition.onresult = (event: any) => {
+          const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
+          const transcriptWords = transcript.split(/\s+/);
+          const lastSpokenWord = transcriptWords[transcriptWords.length - 1];
+
+          const lookAheadAmount = 3; 
+          const currentIndex = wordIndexRef.current;
+
+          for (let i = 0; i < lookAheadAmount; i++) {
+            const checkIndex = currentIndex + i;
+            if (checkIndex >= originalWords.length) break;
+
+            const targetWord = originalWords[checkIndex]
+              .replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "")
+              .toLowerCase();
+
+            if (transcript.includes(targetWord) || (lastSpokenWord.length >= 3 && targetWord.startsWith(lastSpokenWord))) {
+              wordTimestampsRef.current.push(Date.now());
+              const newIndex = checkIndex + 1;
+              wordIndexRef.current = newIndex;
+              setWordIndex(newIndex);
+              break;
+            }
+          }
+        };
+
+        recognition.onend = () => {
+          if (wordIndexRef.current < originalWords.length) {
+            try { recognition.start(); } catch (e) {}
+          }
+        };
+
+        recognitionRef.current = recognition;
+        recognition.start();
+
+        // Start Audio Recording ONLY if enabled
+        if (isRecordingEnabled) {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          const recorder = new MediaRecorder(stream);
+          chunksRef.current = [];
+          
+          recorder.ondataavailable = (e) => chunksRef.current.push(e.data);
+          recorder.onstop = () => {
+            const blob = new Blob(chunksRef.current, { type: "audio/mp3" });
+            setAudioBlob(blob);
+          };
+          
+          mediaRecorderRef.current = recorder;
+          recorder.start();
+        }
+      }, 700);
+      return () => clearTimeout(startId);
+    }
+
+    const id = setTimeout(() => setCountdown((c) => c! - 1), 1000);
+    return () => clearTimeout(id);
+  }, [countdown, isRecordingEnabled, originalWords]);
 
   // WPM CALCULATION
   const calculateLiveWPM = useCallback(() => {
@@ -201,6 +262,22 @@ export default function SpeechHandler({ scriptText }: { scriptText: string }) {
 
   return (
     <div className="w-full max-w-4xl mx-auto text-center pb-[60vh] relative">
+      {/* COUNTDOWN OVERLAY */}
+      {countdown !== null && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/90 z-50">
+          <div className="text-center">
+            {countdown > 0 ? (
+              <>
+                <p className="text-lg mb-4 opacity-80">Starting in</p>
+                <div className="text-7xl font-bold text-yellow-400">{countdown}</div>
+              </>
+            ) : (
+              <div className="text-5xl font-bold text-yellow-400">Go!</div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* RESTART BUTTON */}
       <button
         onClick={handleRestart}

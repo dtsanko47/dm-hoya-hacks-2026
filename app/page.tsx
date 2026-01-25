@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 export default function Home() {
@@ -10,8 +10,26 @@ export default function Home() {
   const [styleExaggeration, setStyleExaggeration] = useState(0.5);
   const [voiceId, setVoiceId] = useState("21m00Tcm4TlvDq8ikWAM"); // Default to Rachel
   const [loading, setLoading] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(true);
   const router = useRouter();
   const [showHelp, setShowHelp] = useState(false);
+
+  // Load theme from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedTheme = localStorage.getItem("theme");
+      if (savedTheme === "light") {
+        setIsDarkMode(false);
+      }
+    }
+  }, []);
+
+  // Save theme to localStorage when it changes
+  const handleThemeChange = () => {
+    const newTheme = !isDarkMode;
+    setIsDarkMode(newTheme);
+    localStorage.setItem("theme", newTheme ? "dark" : "light");
+  };
 
   const playPreview = async () => {
     setLoading(true);
@@ -47,42 +65,73 @@ export default function Home() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-12 bg-black text-white">
+    <main className={`flex min-h-screen flex-col items-center justify-center p-12 transition-colors duration-300 ${
+      isDarkMode ? 'bg-black text-white' : 'bg-white text-black'
+    }`}>
+      {/* THEME TOGGLE */}
+      <div className="fixed top-6 right-20 z-50 flex flex-col items-center gap-1">
+        <p className={`text-[10px] font-bold uppercase tracking-widest ${isDarkMode ? 'text-white/50' : 'text-black/50'}`}>
+          Theme
+        </p>
+        <button
+          onClick={handleThemeChange}
+          className={`rounded-full border px-4 py-2 font-bold transition ${
+            isDarkMode 
+              ? 'border-white/20 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white' 
+              : 'border-black/20 bg-black/5 text-black/80 hover:bg-black/10 hover:text-black'
+          }`}
+        >
+          {isDarkMode ? 'Light' : 'Dark'}
+        </button>
+      </div>
+
       <h1 className="text-5xl font-bold mb-8 text-yellow-400">ProPodium AI</h1>
       
       <textarea 
         value={script}
         onChange={(e) => setScript(e.target.value)}
-        className="w-full max-w-2xl h-64 p-4 bg-zinc-900 text-white rounded-xl border-2 border-zinc-700 focus:border-yellow-400 outline-none mb-6"
+        className={`w-full max-w-2xl h-64 p-4 rounded-xl border-2 outline-none mb-6 transition-colors ${
+          isDarkMode
+            ? 'bg-zinc-900 text-white border-zinc-700 focus:border-yellow-400'
+            : 'bg-gray-100 text-black border-gray-300 focus:border-yellow-400'
+        }`}
         placeholder="Paste your script here..."
       />
 
-      <div className="flex flex-col gap-6 w-full max-w-2xl bg-zinc-900 p-8 rounded-2xl border border-white/10 mb-8">
+      <div className={`flex flex-col gap-6 w-full max-w-2xl p-8 rounded-2xl border mb-8 transition-colors ${
+        isDarkMode 
+          ? 'bg-zinc-900 border-white/10' 
+          : 'bg-gray-100 border-black/10'
+      }`}>
         <div className="grid grid-cols-4 gap-6">
           <div className="flex flex-col gap-2">
-            <label className="text-xs text-white/50 uppercase font-bold">Stability: {stability}</label>
+            <label className={`text-xs uppercase font-bold ${isDarkMode ? 'text-white/50' : 'text-black/50'}`}>Stability: {stability}</label>
             <input type="range" min="0" max="1" step="0.1" value={stability} onChange={(e) => setStability(parseFloat(e.target.value))} className="accent-yellow-400" />
           </div>
           <div className="flex flex-col gap-2">
-            <label className="text-xs text-white/50 uppercase font-bold">Similarity: {similarity}</label>
+            <label className={`text-xs uppercase font-bold ${isDarkMode ? 'text-white/50' : 'text-black/50'}`}>Similarity: {similarity}</label>
             <input type="range" min="0" max="1" step="0.1" value={similarity} onChange={(e) => setSimilarity(parseFloat(e.target.value))} className="accent-yellow-400" />
           </div>
           <div className="flex flex-col gap-2">
-            <label className="text-xs text-white/50 uppercase font-bold">Speed: {speed}</label>
+            <label className={`text-xs uppercase font-bold ${isDarkMode ? 'text-white/50' : 'text-black/50'}`}>Speed: {speed}</label>
             <input type="range" min="0" max="1" step="0.1" value={speed} onChange={(e) => setSpeed(parseFloat(e.target.value))} className="accent-yellow-400" />
           </div>
           <div className="flex flex-col gap-2 -mt-4">
-            <label className="text-xs text-white/50 uppercase font-bold">Style Exaggeration: {styleExaggeration}</label>
+            <label className={`text-xs uppercase font-bold ${isDarkMode ? 'text-white/50' : 'text-black/50'}`}>Style Exaggeration: {styleExaggeration}</label>
             <input type="range" min="0" max="1" step="0.1" value={styleExaggeration} onChange={(e) => setStyleExaggeration(parseFloat(e.target.value))} className="accent-yellow-400" />
           </div>
         </div>
 
         <div className="flex flex-col gap-2">
-          <label className="text-xs text-white/50 uppercase font-bold">Select Voice</label>
+          <label className={`text-xs uppercase font-bold ${isDarkMode ? 'text-white/50' : 'text-black/50'}`}>Select Voice</label>
           <select 
             value={voiceId} 
             onChange={(e) => setVoiceId(e.target.value)}
-            className="bg-black p-3 rounded-lg border border-white/20 outline-none focus:border-yellow-400"
+            className={`p-3 rounded-lg border outline-none focus:border-yellow-400 transition-colors ${
+              isDarkMode
+                ? 'bg-black text-white border-white/20'
+                : 'bg-white text-black border-black/20'
+            }`}
           >
             {/* These are standard Pre-made voices that should always work */}
           <option value="21m00Tcm4TlvDq8ikWAM">Rachel (Female - Soft, Casual)</option>
@@ -159,7 +208,11 @@ export default function Home() {
         </div>
       )}
 
-  
+      {/* POWERED BY FOOTER */}
+      <div className="fixed bottom-6 left-6 px-4 py-2 bg-zinc-900/80 border border-white/10 rounded-lg">
+        <p className="text-xs text-zinc-400">Powered by <span className="text-white font-semibold">ElevenLabs</span> & <span className="text-white font-semibold">Google Gemini</span></p>
+      </div>
+
     </main>
   );
 }
