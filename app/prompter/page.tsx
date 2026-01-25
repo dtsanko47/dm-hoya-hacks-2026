@@ -30,14 +30,6 @@ export default function PrompterPage() {
         ← Back
       </button>
 
-      <button
-        onClick={handleRestart}
-        className="fixed top-6 right-6 z-50 rounded-full border border-white/20 bg-red-600/20 px-4 py-2
-                   text-red-300 hover:bg-red-600/30 hover:text-red-100 transition"
-      >
-        🔄 Restart
-      </button>
-
       <h2 className="fixed top-6 left-1/2 -translate-x-1/2 text-xl text-white/70">
         Teleprompter
       </h2>
