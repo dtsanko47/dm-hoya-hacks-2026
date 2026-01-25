@@ -25,7 +25,6 @@ export default function SpeechHandler({ scriptText }: { scriptText: string }) {
   const activeWordRef = useRef<HTMLSpanElement>(null);
   const wordTimestampsRef = useRef<number[]>([]);
 
-  //------------------- NEW AI FEATURES -------------------//
   const [isRecordingEnabled, setIsRecordingEnabled] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [aiSummary, setAiSummary] = useState<string | null>(null);
@@ -141,23 +140,6 @@ export default function SpeechHandler({ scriptText }: { scriptText: string }) {
   };
 
 
-
-
-
-
-
-  /*
-  const toggleListening = () => {
-    if (isListening) {
-      setIsListening(false);
-      recognitionRef.current?.stop();
-    } else {
-      setIsListening(true);
-      wordTimestampsRef.current = [];
-      startListening();
-    }
-  };
-  */
 
 
   const generateAISummary = async () => {

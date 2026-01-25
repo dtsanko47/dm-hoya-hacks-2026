@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 
-// ✅ Tell Next.js to allow this route to run for up to 60 seconds
 export const maxDuration = 60; 
 
 export async function POST(req: Request) {
@@ -44,8 +43,8 @@ export async function POST(req: Request) {
         },
       ],
       generationConfig: {
-        temperature: 0.5, // Lower for more consistent, structured output
-        maxOutputTokens: 2048, // ✅ Increased to prevent cutting off
+        temperature: 0.5,
+        maxOutputTokens: 2048,
       },
     };
 
