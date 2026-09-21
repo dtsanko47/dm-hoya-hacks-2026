@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { MAX_TTS_CHARS } from "@/lib/limits";
 
 export default function Home() {
   const [script, setScript] = useState("");
@@ -8,10 +9,11 @@ export default function Home() {
   const [similarity, setSimilarity] = useState(0.5);
   const [speed, setSpeed] = useState(0.5);
   const [styleExaggeration, setStyleExaggeration] = useState(0.5);
-  const [voiceId, setVoiceId] = useState("21m00Tcm4TlvDq8ikWAM"); // Default to Rachel
+  const [voiceId, setVoiceId] = useState("hpp4J3VqNfWAUOO0d1Us"); // Default to Bella
   const [loading, setLoading] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const router = useRouter();
+  const overCharLimit = script.length >= MAX_TTS_CHARS;
   const [showHelp, setShowHelp] = useState(false);
 
   // Load theme from localStorage on mount
@@ -23,6 +25,11 @@ export default function Home() {
       }
     }
   }, []);
+
+  // Keep <html> in sync so the page background matches the toggle
+  useEffect(() => {
+    document.documentElement.dataset.theme = isDarkMode ? "dark" : "light";
+  }, [isDarkMode]);
 
   // Save theme to localStorage when it changes
   const handleThemeChange = () => {
@@ -40,11 +47,26 @@ export default function Home() {
           'Content-Type': 'application/json',
           'Accept': 'audio/mpeg'
         },
-        body: JSON.stringify({ text: script, stability, similarity, voiceId }),
+        body: JSON.stringify({
+          text: script,
+          stability,
+          similarity,
+          speed,
+          styleExaggeration,
+          voiceId,
+        }),
       });
 
       if (!response.ok) {
-        throw new Error(`API error: ${response.statusText}`);
+        // Pull the real reason out of the JSON error body.
+        let reason = response.statusText;
+        try {
+          const err = await response.json();
+          reason = err.details || err.error || reason;
+        } catch {
+          // Non-JSON error body - fall back to the status text.
+        }
+        throw new Error(reason);
       }
 
       const blob = new Blob([await response.arrayBuffer()], { type: 'audio/mpeg' });
@@ -53,7 +75,7 @@ export default function Home() {
       audio.play();
     } catch (e) {
       console.error("Audio playback error:", e);
-      alert("Failed to play audio. Check console for details.");
+      alert(`Failed to play audio: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setLoading(false);
     }
@@ -85,18 +107,37 @@ export default function Home() {
         </button>
       </div>
 
-      <h1 className="text-5xl font-bold mb-8 text-yellow-400">ProPodium AI</h1>
+      <h1 className={`text-5xl font-bold mb-8 ${
+        isDarkMode ? 'text-yellow-400' : 'text-yellow-600'
+      }`}>ProPodium AI</h1>
       
       <textarea 
         value={script}
         onChange={(e) => setScript(e.target.value)}
         className={`w-full max-w-2xl h-64 p-4 rounded-xl border-2 outline-none mb-6 transition-colors ${
           isDarkMode
-            ? 'bg-zinc-900 text-white border-zinc-700 focus:border-yellow-400'
-            : 'bg-gray-100 text-black border-gray-300 focus:border-yellow-400'
+            ? 'bg-zinc-900 text-white border-zinc-700 focus:border-yellow-400 placeholder:text-white/40'
+            : 'bg-gray-100 text-black border-gray-300 focus:border-yellow-400 placeholder:text-black/50'
         }`}
         placeholder="Paste your script here..."
+        maxLength={MAX_TTS_CHARS}
       />
+
+      {/* A credit per character - show the cost before the click */}
+      <div
+        className={`w-full max-w-2xl -mt-4 mb-6 flex justify-between text-xs ${
+          isDarkMode ? 'text-white/40' : 'text-black/40'
+        }`}
+      >
+        <span>
+          {script.length.toLocaleString()} / {MAX_TTS_CHARS.toLocaleString()} characters
+        </span>
+        <span className={overCharLimit ? 'text-yellow-400 font-bold' : undefined}>
+          {overCharLimit
+            ? 'Character limit reached'
+            : `Preview uses about ${script.length.toLocaleString()} credits`}
+        </span>
+      </div>
 
       <div className={`flex flex-col gap-6 w-full max-w-2xl p-8 rounded-2xl border mb-8 transition-colors ${
         isDarkMode 
@@ -134,7 +175,6 @@ export default function Home() {
             }`}
           >
             {/* These are standard Pre-made voices that should always work */}
-          <option value="21m00Tcm4TlvDq8ikWAM">Rachel (Female - Soft, Casual)</option>
           <option value="hpp4J3VqNfWAUOO0d1Us">Bella (Female - Warm, Professional)</option>
           <option value="EXAVITQu4vr4xnSDxMaL">Sarah (Female - Mature, Confident)</option>
           <option value="SAz9YHcvj6GT2YYXdXww">River (Female - Relaxed, Neutral)</option>
@@ -148,7 +188,7 @@ export default function Home() {
         <button 
           onClick={playPreview} 
           disabled={loading || !script}
-          className="bg-purple-600 py-3 rounded-full font-bold hover:bg-purple-500 disabled:opacity-50 transition"
+          className="bg-purple-600 text-white py-3 rounded-full font-bold hover:bg-purple-500 disabled:bg-purple-900 disabled:text-white/50 transition"
         >
           {loading ? "Generating Audio..." : "🔊 Hear AI Coach"}
         </button>

@@ -1,4 +1,19 @@
 import { NextResponse } from "next/server";
+import {
+  MAX_AUDIO_BYTES,
+  MAX_SCRIPT_CHARS,
+  rateLimit,
+  sweepBuckets,
+  clientKey,
+} from "@/lib/limits";
+
+const ALLOWED_AUDIO_TYPES = [
+  "audio/webm",
+  "audio/mp4",
+  "audio/mpeg",
+  "audio/ogg",
+  "audio/wav",
+];
 
 export const maxDuration = 60; 
 
@@ -11,6 +26,41 @@ export async function POST(req: Request) {
 
     if (!apiKey) {
       return NextResponse.json({ error: "API Key Missing" }, { status: 500 });
+    }
+
+    if (!audioFile) {
+      return NextResponse.json({ error: "No audio provided" }, { status: 400 });
+    }
+
+    sweepBuckets();
+    const limit = rateLimit(`review:${clientKey(req)}`, 5, 60_000);
+    if (!limit.ok) {
+      return NextResponse.json(
+        { error: "Too many requests. Please wait a moment and try again." },
+        { status: 429, headers: { "Retry-After": String(limit.retryAfter) } }
+      );
+    }
+
+    // Inlined as base64, so a big upload costs tokens and time.
+    if (audioFile.size > MAX_AUDIO_BYTES) {
+      return NextResponse.json(
+        { error: "Recording is too large." },
+        { status: 413 }
+      );
+    }
+
+    if (typeof originalScript === "string" && originalScript.length > MAX_SCRIPT_CHARS) {
+      return NextResponse.json({ error: "Script is too long." }, { status: 413 });
+    }
+
+    // MediaRecorder reports "audio/webm;codecs=opus"; Gemini wants it bare.
+    const mimeType = (audioFile.type || "audio/webm").split(";")[0].trim();
+
+    if (!ALLOWED_AUDIO_TYPES.includes(mimeType)) {
+      return NextResponse.json(
+        { error: `Unsupported audio format: ${mimeType}` },
+        { status: 415 }
+      );
     }
 
     const buffer = await audioFile.arrayBuffer();
@@ -35,7 +85,7 @@ export async function POST(req: Request) {
             },
             {
               inline_data: {
-                mime_type: "audio/webm",
+                mime_type: mimeType,
                 data: base64Audio,
               },
             },
@@ -58,7 +108,16 @@ export async function POST(req: Request) {
 
     if (!response.ok) {
       console.error("GOOGLE API ERROR:", JSON.stringify(data, null, 2));
-      return NextResponse.json({ error: data.error?.message }, { status: response.status });
+      // Log the upstream detail, don't serve it.
+      return NextResponse.json(
+        {
+          error: `Gemini API Error: ${response.status}`,
+          ...(process.env.NODE_ENV === "production"
+            ? {}
+            : { details: data.error?.message }),
+        },
+        { status: 502 }
+      );
     }
 
     const feedbackText = data.candidates?.[0]?.content?.parts?.[0]?.text || "No feedback generated.";

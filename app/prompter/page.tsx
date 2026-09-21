@@ -18,6 +18,11 @@ export default function PrompterPage() {
     }
   }, []);
 
+  // Keep <html> in sync so the page background matches the toggle
+  useEffect(() => {
+    document.documentElement.dataset.theme = isDarkMode ? "dark" : "light";
+  }, [isDarkMode]);
+
   // Save theme to localStorage when it changes
   const handleThemeChange = () => {
     const newTheme = !isDarkMode;
