@@ -118,7 +118,10 @@ export default function SpeechHandler({
           
           recorder.ondataavailable = (e) => chunksRef.current.push(e.data);
           recorder.onstop = () => {
-            const blob = new Blob(chunksRef.current, { type: "audio/mp3" });
+            // Chrome records webm, Safari mp4 - use whatever we actually got
+            const blob = new Blob(chunksRef.current, {
+              type: recorder.mimeType || "audio/webm",
+            });
             setAudioBlob(blob);
           };
           
