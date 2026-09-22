@@ -1,10 +1,10 @@
-# 🎙️ ProPodium AI: Smart Speech Coach and Intelligent Teleprompter
+# ProPodium AI: Smart Speech Coach and Intelligent Teleprompter
 
 **ProPodium AI** is an intelligent, real-time speech coaching application built for the 2026 Hoya Hacks. It leverages **Next.js 15** and **Google Gemini 2.5 Flash** to analyze spoken practice against a written script, providing instant, actionable feedback on accuracy, pacing, and tone.
 
 ---
 
-## ✨ Features
+## Features
 
 - **AI Reference Audio (ElevenLabs):** Paste your script and generate a "Perfect Delivery" example. Hear exactly how your speech *should* sound before you even start recording.
 - **Multimodal Audio Analysis:** Processes raw voice recordings directly
@@ -12,14 +12,14 @@
 - **Pacing & Tone Insights:** Analyzes your delivery speed and emotional resonance.
 - **Compact UI:** Clean, dark-mode interface with optimized typography for easy reading of "Coach's Notes."
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **Frontend:** Next.js 15 (App Router), Tailwind CSS
 - **AI Engine:** Google Gemini 2.5 Flash (Multimodal)
 - **API Handler:** Edge-compatible Route Handlers with extended 60s timeout
 - **Audio Capture:** MediaRecorder API (WebM)
 
-## 🚀 Getting Started
+## Getting Started
 
 ### 1. Prerequisites
 - Node.js 20+
